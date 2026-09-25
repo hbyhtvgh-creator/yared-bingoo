@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Pro Max Enterprise System</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #eab308;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar Styling */
+        nav {
+            background-color: var(--card-bg);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        nav h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--accent);
+            color: white;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button.danger {
+            background-color: var(--danger);
+        }
+
+        button.danger:hover {
+            background-color: #dc2626;
+        }
+
+        .container {
+            padding: 2rem;
+            flex: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Card & Panel Styling */
+        .panel {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #334155;
+        }
+
+        /* Login Form */
+        .login-card {
+            max-width: 400px;
+            margin: 5rem auto;
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-sub);
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #0f172a;
+            color: white;
+        }
+
+        /* Game Board Grid */
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            gap: 8px;
+            margin-top: 1rem;
+        }
+
+        .number-ball {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0f172a;
+            border-radius: 50%;
+            font-weight: bold;
+            border: 1px solid #334155;
+            font-size: 0.9rem;
+        }
+
+        .number-ball.called {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .number-ball.last-called {
+            background-color: var(--success);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Data Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        th {
+            background-color: #0f172a;
+            color: var(--text-sub);
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .badge.active { background-color: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .badge.disabled { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav>
+        <h1>🎯 Bingo Pro Max Enterprise</h1>
+        <div class="user-info" id="navUserInfo" style="display: none;">
+            <span id="displayUsername">ተጠቃሚ</span>
+            <span id="displayRole" class="badge active">ROLE</span>
+            <button class="danger" onclick="logout()">ውጣ (Logout)</button>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- 1. LOGIN VIEW -->
+        <div id="loginView" class="view active">
+            <div class="login-card">
+                <h2 style="margin-bottom: 1.5rem; text-align: center;">ወደ ሲስተሙ ግባ</h2>
+                <div id="loginError" style="color: var(--danger); margin-bottom: 1rem; display: none;"></div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>የተጠቃሚ ስም (Username)</label>
+                        <input type="text" id="username" required placeholder="ተጠቃሚ ስም ያስገቡ">
+                    </div>
+                    <div class="form-group">
+                        <label>የይለፍ ቃል (Password)</label>
+                        <input type="password" id="password" required placeholder="የይለፍ ቃል ያስገቡ">
+                    </div>
+                    <button type="submit" style="width: 100%; padding: 0.8rem;">ግደፍ (Login)</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. GAME OPERATOR VIEW -->
+        <div id="gameView" class="view">
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <div>
+                    <div class="panel">
+                        <h2>የጨዋታ ሰሌዳ (Bingo Board 1-75)</h2>
+                        <div class="bingo-grid" id="bingoBoard"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="panel" style="text-align: center;">
+                        <h3>የመጨረሻው የተጠራ ቁጥር</h3>
+                        <div id="currentCall" style="font-size: 4rem; font-weight: bold; color: var(--success); margin: 1rem 0;">--</div>
+                        <button id="callBtn" onclick="callNextNumber()" style="width: 100%; padding: 1rem; font-size: 1.2rem; margin-bottom: 1rem;">ቁጥር ጥራ (Call Next)</button>
+                        <button class="danger" onclick="resetGame()" style="width: 100%;">ጨዋታውን አዲስ ጀምር (Reset)</button>
+                    </div>
+
+                    <div class="panel">
+                        <h3>የካርድ ማረጋገጫ (Check Card)</h3>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <input type="number" id="cardCheckInput" placeholder="የካርድ ቁጥር ያስገቡ">
+                        </div>
+                        <button onclick="verifyCard()" style="width: 100%;">አሸናፊነቱን አረጋግጥ</button>
+                        <div id="verifyResult" style="margin-top: 1rem; font-weight: bold;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. SYSTEM ADMIN VIEW -->
+        <div id="adminView" class="view">
+            <div class="panel">
+                <h2>የተጠቃሚዎች መቆጣጠሪያ (User Management)</h2>
+                <button onclick="showAddUserModal()" style="margin: 1rem 0;">+ አዲስ ተጠቃሚ መዝግብ</button>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>የተጠቃሚ ስም</th>
+                            <th>ሚና (Role)</th>
+                            <th>ሁኔታ (Status)</th>
+                            <th>ድርጊቶች</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. NATIONAL LOTTERY INSPECTOR VIEW -->
+        <div id="lotteryView" class="view">
+            <div class="panel">
+                <h2>የብሔራዊ ሎተሪ ቁጥጥር እና ኦዲት (Inspector Dashboard)</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0;">
+                    <div style="background: #0f172a; padding: 1rem; border-radius: 8px;">
+                        <h4>ጠቅላላ ገቢ (Gross Revenue)</h4>
+                        <p id="totalGross" style="font-size: 1.8rem; color: var(--accent); font-weight: bold;">0 ETB</p>
+                    </div>
+                    <div style="background: #0f172a; padding: 1rem; border-radius: 8px;">
+                        <h4>የመንግስት/ሎተሪ ግብር (15% Tax)</h4>
+                        <p id="totalTax" style="font-size: 1.8rem; color: var(--warning); font-weight: bold;">0 ETB</p>
+                    </div>
+                    <div style="background: #0f172a; padding: 1rem; border-radius: 8px;">
+                        <h4>የተጣራ አትርፍ (Net Profit)</h4>
+                        <p id="totalNet" style="font-size: 1.8rem; color: var(--success); font-weight: bold;">0 ETB</p>
+                    </div>
+                </div>
+
+                <h3>የጨዋታ ታሪክ እና ኦዲት ሎግ</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ጊዜ</th>
+                            <th>ኦፐሬተር</th>
+                            <th>የተጠሩ ቁጥሮች</th>
+                            <th>አሸናፊ ካርድ</th>
+                            <th>የሽልማት መጠን</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. የባክኤንድ አድራሻ (Backend API Configuration)
+        // ==========================================
+        const API_BASE_URL = 'http://localhost:3000/api'; // ሰርቨር ላይ ሲጫን አድራሻውን እዚህ ጋር ይቀይሩ
+
+        // State Variables
+        let currentUser = null;
+        let token = localStorage.getItem('bingo_token');
+        let gameState = { calledNumbers: [], registeredIds: [] };
+
+        // Document Ready Event
+        document.addEventListener('DOMContentLoaded', () => {
+            initBoardUI();
+            if (token) {
+                const savedUser = JSON.parse(localStorage.getItem('bingo_user') || '{}');
+                if (savedUser.role) {
+                    setSession(token, savedUser);
+                } else {
+                    logout();
+                }
+            }
+        });
+
+        // ==========================================
+        // 2. Authentication Handling
+        // ==========================================
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.error || 'የመግባት ስህተት አጋጥሟል!');
+
+                setSession(data.token, { username: data.username, role: data.role });
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        function setSession(authToken, user) {
+            token = authToken;
+            currentUser = user;
+            localStorage.setItem('bingo_token', token);
+            localStorage.setItem('bingo_user', JSON.stringify(user));
+
+            document.getElementById('navUserInfo').style.display = 'flex';
+            document.getElementById('displayUsername').innerText = user.username;
+            document.getElementById('displayRole').innerText = user.role;
+
+            navigateByRole(user.role);
+        }
+
+        function logout() {
+            token = null;
+            currentUser = null;
+            localStorage.removeItem('bingo_token');
+            localStorage.removeItem('bingo_user');
+            
+            document.getElementById('navUserInfo').style.display = 'none';
+            switchView('loginView');
+        }
+
+        function navigateByRole(role) {
+            if (role === 'ADMIN') {
+                switchView('adminView');
+                loadUsersData();
+            } else if (role === 'LOTTERY') {
+                switchView('lotteryView');
+                loadInspectorReports();
+            } else {
+                switchView('gameView');
+                syncGameState();
+            }
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        // ==========================================
+        // 3. Game Logic & Board Handling
+        // ==========================================
+        function initBoardUI() {
+            const board = document.getElementById('bingoBoard');
+            board.innerHTML = '';
+            for (let i = 1; i <= 75; i++) {
+                const ball = document.createElement('div');
+                ball.className = 'number-ball';
+                ball.id = `ball-${i}`;
+                ball.innerText = i;
+                board.appendChild(ball);
+            }
+        }
+
+        async function syncGameState() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/game/state`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    gameState = await res.json();
+                    updateBoardUI();
+                }
+            } catch (err) {
+                console.error('የጨዋታ ሁኔታ ማግኘት አልተቻለም:', err);
+            }
+        }
+
+        function updateBoardUI() {
+            // Reset all balls
+            document.querySelectorAll('.number-ball').forEach(b => {
+                b.className = 'number-ball';
+            });
+
+            gameState.calledNumbers.forEach((num, index) => {
+                const ball = document.getElementById(`ball-${num}`);
+                if (ball) {
+                    ball.classList.add('called');
+                    if (index === gameState.calledNumbers.length - 1) {
+                        ball.classList.add('last-called');
+                        document.getElementById('currentCall').innerText = num;
+                    }
+                }
+            });
+        }
+
+        async function callNextNumber() {
+            if (gameState.calledNumbers.length >= 75) {
+                alert('ሁሉም ቁጥሮች ተጠርተዋል!');
+                return;
+            }
+
+            let nextNum;
+            do {
+                nextNum = Math.floor(Math.random() * 75) + 1;
+            } while (gameState.calledNumbers.includes(nextNum));
+
+            gameState.calledNumbers.push(nextNum);
+            updateBoardUI();
+            playAudioForNumber(nextNum);
+
+            // Save state to Backend
+            try {
+                await fetch(`${API_BASE_URL}/game/state`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(gameState)
+                });
+            } catch (err) {
+                console.error('ሁኔታውን መመዝገብ አልተቻለም:', err);
+            }
+        }
+
+        function playAudioForNumber(num) {
+            let letter = 'B';
+            if (num > 15) letter = 'I';
+            if (num > 30) letter = 'N';
+            if (num > 45) letter = 'G';
+            if (num > 60) letter = 'O';
+
+            const audio = new Audio(`yared/${letter.toLowerCase()}${num}.m4a`);
+            audio.play().catch(e => console.log('Audio error:', e));
+        }
+
+        async function resetGame() {
+            if (!confirm('እርግጠኛ ነዎት ጨዋታውን ዳግም ማስጀመር ይፈልጋሉ?')) return;
+            
+            gameState.calledNumbers = [];
+            document.getElementById('currentCall').innerText = '--';
+            updateBoardUI();
+
+            await fetch(`${API_BASE_URL}/game/state`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(gameState)
+            });
+        }
+
+        async function verifyCard() {
+            const cardId = parseInt(document.getElementById('cardCheckInput').value);
+            const resultDiv = document.getElementById('verifyResult');
+
+            if (!cardId) {
+                resultDiv.innerText = 'እባክዎን ትክክለኛ የካርድ ቁጥር ያስገቡ!';
+                resultDiv.style.color = 'var(--danger)';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/game/cards`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const cards = await res.json();
+                const card = cards.find(c => c.id === cardId);
+
+                if (!card) {
+                    resultDiv.innerText = 'ካርዱ አልተገኘም!';
+                    resultDiv.style.color = 'var(--danger)';
+                    return;
+                }
+
+                // Simple check logic
+                resultDiv.innerText = `ካርድ #${cardId} በምርመራ ላይ ነው...`;
+                resultDiv.style.color = 'var(--warning)';
+            } catch (err) {
+                resultDiv.innerText = 'ማረጋገጥ አልተቻለም!';
+                resultDiv.style.color = 'var(--danger)';
+            }
+        }
+
+        // ==========================================
+        // 4. Admin Management Functions
+        // ==========================================
+        async function loadUsersData() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = await res.json();
+
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+
+                users.forEach(u => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${u.id}</td>
+                            <td>${u.username}</td>
+                            <td><span class="badge active">${u.role}</span></td>
+                            <td><span class="badge ${u.status === 'ACTIVE' ? 'active' : 'disabled'}">${u.status}</span></td>
+                            <td>
+                                <button onclick="toggleUserStatus(${u.id}, '${u.status}')">
+                                    ${u.status === 'ACTIVE' ? 'አግድ (Block)' : 'ክፈት (Activate)'}
+                                </button>
+                                <button class="danger" onclick="deleteUser(${u.id})">ሰርዝ</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error('የተጠቃሚዎችን መረጃ መጫን አልተቻለም:', err);
+            }
+        }
+
+        async function toggleUserStatus(userId, currentStatus) {
+            const newStatus = currentStatus === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE';
+            await fetch(`${API_BASE_URL}/admin/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            loadUsersData();
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('እርግጠኛ ነዎት ይህን ተጠቃሚ መሰረዝ ይፈልጋሉ?')) return;
+            await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            loadUsersData();
+        }
+
+        // ==========================================
+        // 5. Lottery Inspector Audit
+        // ==========================================
+        async function loadInspectorReports() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/reports`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (data.summary && data.summary.length > 0) {
+                    const gross = data.summary[0].gross_income || 0;
+                    const tax = gross * 0.15; // 15% የሎተሪ ግብር
+                    const net = gross - tax;
+
+                    document.getElementById('totalGross').innerText = `${gross.toLocaleString()} ETB`;
+                    document.getElementById('totalTax').innerText = `${tax.toLocaleString()} ETB`;
+                    document.getElementById('totalNet').innerText = `${net.toLocaleString()} ETB`;
+                }
+
+                const tbody = document.getElementById('auditTableBody');
+                tbody.innerHTML = '';
+                (data.logs || []).forEach(log => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${new Date(log.created_at).toLocaleString()}</td>
+                            <td>${log.username}</td>
+                            <td>${log.called_count || 0} ቁጥሮች</td>
+                            <td>#${log.winner_card_id || 'N/A'}</td>
+                            <td>${log.prize_amount || 0} ETB</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error('የሪፖርት መረጃ መጫን አልተቻለም:', err);
+            }
+        }
+    </script>
+</body>
+</html>
